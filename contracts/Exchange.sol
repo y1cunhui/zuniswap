@@ -3,13 +3,28 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+interface IExchange {
+    function ethToTokenSwap(uint256 _minTokens) external payable;
+
+    function ethToTokenTransfer(uint256 _minTokens, address _recipient)
+        external
+        payable;
+}
+
+interface IFactory {
+    function getExchange(address _tokenAddress) external returns (address);
+}
+
 contract Exchange is ERC20 {
     address public tokenAddress;
+    address public factoryAddress;
 
     constructor(address _token) ERC20("ZUniswap-V1", "ZUNI1") {
         require(_token != address(0), "invalid token address");
 
         tokenAddress = _token;
+        factoryAddress = msg.sender;
+
     }
 
     function addLiquidity(uint256 _amount) public payable{
@@ -116,6 +131,34 @@ contract Exchange is ERC20 {
         payable(msg.sender).transfer(ethAmount);
 
         return (ethAmount, tokenAmount);
+    }
+
+    function tokenToTokenSwap(
+        uint _thisTokenAmount,
+        uint _minBoughtTokenAmount,
+        address _anotherToken
+    ) public {
+        address exchangeAddress = IFactory(factoryAddress).getExchange(_anotherToken);
+        require(exchangeAddress != address(0), "This token has no exchange.");
+
+        uint256 tokenReserve = getReserve();
+        uint256 ethBought = getAmount(
+            _thisTokenAmount,
+            tokenReserve,
+            address(this).balance
+        );
+
+        IERC20(tokenAddress).transferFrom(
+            msg.sender,
+            address(this),
+            _thisTokenAmount
+        );
+
+        IExchange(exchangeAddress).ethToTokenSwap{value: ethBought}(
+            _minBoughtTokenAmount
+        );
+
+        IERC20(_anotherToken).transfer(msg.sender, (IERC20(_anotherToken).balanceOf(address(this))));
     }
 
 }
