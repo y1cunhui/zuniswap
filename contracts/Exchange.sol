@@ -46,14 +46,18 @@ contract Exchange is ERC20 {
         return (inReserve*1000) / outReserve ;
     }
 
+    // Swap fee: 1%
     function getAmount(
         uint inputAmount,
         uint inputReserve, 
         uint outputReserve
     ) private pure returns(uint) {
         require(inputReserve > 0 && outputReserve > 0, "Invalid Reserve");
+
+        uint inputAmountWithFee = inputAmount * 99;
+
         
-        return (inputAmount * outputReserve) / (inputReserve + inputAmount);
+        return (inputAmountWithFee * outputReserve) / (inputReserve * 100 + inputAmount);
     }
 
     function getTokenAmount(
