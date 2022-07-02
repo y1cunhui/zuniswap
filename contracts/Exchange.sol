@@ -102,4 +102,20 @@ contract Exchange is ERC20 {
         payable(msg.sender).transfer(ethAmount);
     }
 
+    function removeLiquidity(
+        uint _amount
+    ) public returns (uint, uint) {
+        require(_amount > 0, "Invalid amount");
+
+        uint ethAmount = _amount * address(this).balance / totalSupply();
+        uint tokenAmount = _amount * getReserve() / totalSupply();
+
+        _burn(msg.sender, _amount);
+
+        IERC20(tokenAddress).transfer(msg.sender, tokenAmount);
+        payable(msg.sender).transfer(ethAmount);
+
+        return (ethAmount, tokenAmount);
+    }
+
 }
